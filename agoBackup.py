@@ -115,7 +115,7 @@ class AGOLBackup:
                         result.download(backupLocation)
                         result.delete()
                         print("Successfully downloaded " + item.title)
-                        write_to_csv(
+                        self.write_to_csv(
                             [item], self.csv_file_path, backup_name, modified_date)
                     except Exception as e:
                         print(f"Error downloading item {item.title}: {e}")
@@ -162,7 +162,7 @@ if __name__ == "__main__":
     gis = GIS('home')  # Using the local profile for the AGO Credentails will need to change if the computer running the backup script does not have ArcGIS Pro setup on teh workstation and the AGO credentials are not stored
 
     # Change this to the location you want to save the backups to
-    myBackupLocationPath = r"C:\Users\USER\BackupPath"
+    myBackupLocationPath = r"MY_BACKUP_LOCATION"
     backupLocation = myBackupLocationPath
     folder_path = myBackupLocationPath
     csv_file_path = os.path.join(backupLocation, 'agoBackupDetails.csv')
