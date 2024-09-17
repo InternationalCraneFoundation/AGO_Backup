@@ -57,9 +57,9 @@ TODO:
 """
 
 
-from datetime import datetime
+# from datetime import datetime
 import csv
-from time import strftime
+# from time import strftime
 import datetime as dt
 from arcgis.gis import GIS
 import os
@@ -164,7 +164,7 @@ class AGOBackup:
                 # print("Backup name: " + backup_name)
 
                 if os.path.exists(backupLocation + "\\" + backup_name + ".zip"):
-                    print("A backup already exists for " + item.title)
+                    print(" * A backup already exists for " + item.title)
 
                 else:
                     try:
@@ -173,11 +173,11 @@ class AGOBackup:
                         # print(result)
                         result.download(backupLocation)
                         result.delete()
-                        print("Successfully downloaded " + item.title)
+                        print(" * Successfully downloaded " + item.title)
                         self.write_to_csv(
                             [item], self.csv_file_path, backup_name, modified_date)
                     except Exception as e:
-                        print(f"Error downloading item {item.title}: {e}")
+                        print(f" * ERROR downloading item {item.title}: {e}")
                         continue
         print("Finished downloading backups")
 
@@ -231,12 +231,12 @@ if __name__ == "__main__":
     query_string = "type:Feature Service AND NOT typekeywords:View Service"
     items = backup.get_feature_layers(query_string)
     # return the count of items
-    print("Number of Feature Services: " + str(len(items)))
+    print(" - Number of Feature Services: " + str(len(items)))
 
     # limit the items based on the existing backups
     print("Filtering existing backups to only download items with update content...")
     newItems = backup.filterExistingBackups(items, backupLocation)
-    print("Number of items to backup: " + str(len(newItems)))
+    print(" - Number of items to backup: " + str(len(newItems)))
 
     print("Downloading items...")
     backup.download_as_fgdb(newItems, backupLocation)
