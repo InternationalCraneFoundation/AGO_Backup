@@ -17,7 +17,7 @@
   - `os`
   - `datetime`
   - `csv`
-  - `tarcgis.gis`
+  - `arcgis.gis`
 
 ## Usage
 
