@@ -16,63 +16,111 @@ class AGOLBackup:
             query=query, max_items=max_items, sort_field='modified', sort_order='desc')
         return items
 
-    def download_as_fgdb(self, item_list):
-        for item in item_list:
-            # for key in item print key and value
-            # for key in item:
-            #     print(key + ": " + str(item[key]))
-            last_edited = None
+    def get_most_recent_edit_date(self, item):
+        last_edited = None
 
-            try:
-                if 'View Service' in item.typeKeywords:
-                    pass
+        try:
+            # Check layers
+            for layer in item.layers:
+                # print(layer.properties)
+                if layer.properties.editingInfo:
+                    last_edited_date = layer.properties.editingInfo['lastEditDate']
                 else:
-                    layers = item.layers
-                    last_edited = None
-                    modified_date = None
-                    for layer in layers:
+                    continue
 
-                        layer_info = layer.properties
-                        last_edited_date = layer_info.editingInfo.lastEditDate / \
-                            1000  # Convert from milliseconds to seconds
-                        if last_edited is None or last_edited_date > last_edited:
-                            last_edited = last_edited_date
-                            try:
-                                # print("Last edited: " + str(last_edited))
+                if last_edited is None or last_edited_date > last_edited:
+                    last_edited = last_edited_date
 
-                                modified_date = dt.datetime.fromtimestamp(
-                                    last_edited).strftime("%Y-%m-%d_%H-%M-%S")
-                                # print(modified_date)
-                            except:
-                                # print("Modified: " + modified_date)
-                                modified_date = ''
+            # Check tables
+            for table in item.tables:
+                if table.properties.editingInfo:
+                    last_edited_date = table.properties.editingInfo['lastEditDate']
+                else:
+                    continue
+                if last_edited is None or last_edited_date > last_edited:
+                    last_edited = last_edited_date
+
+            if last_edited is not None:
+                last_edited = dt.datetime.fromtimestamp(
+                    last_edited_date/1000).strftime("%Y-%m-%d_%H-%M-%S")
+                return last_edited
+            else:
+                return None
+
+        except Exception as e:
+            print(f"Error processing item {item.title}: {e}")
+            return None
+
+    def filterExistingBackups(self, items, backupLocation):
+        filteredItems = []
+
+        for item in items:
+
+            last_edited_date = self.get_most_recent_edit_date(item)
+            if last_edited_date is None:
+                items.remove(item)
+                continue
+            else:
+                if last_edited_date != "None":
+                    modified_date = last_edited_date
+                else:
+                    modified_date = "None"
+                # modified_date = last_edited_date
+
+            # get the item's id
+            item_id = item.id
+
+            backup_name = str(item_id) + "_" + str(modified_date)
+            # replace any spaces with underscores
+            backup_name = backup_name.replace(" ", "_")
+            # replace any colons with underscores
+            backup_name = backup_name.replace(":", "_")
+            # print("Backup name: " + backup_name)
+            if os.path.exists(backupLocation + "\\" + backup_name + ".zip"):
+                # print("A backup already exists for " + item.title)
+                items.remove(item)
+            else:
+                filteredItems.append(item)
+        return filteredItems
+
+    def download_as_fgdb(self, item_list, backupLocation):
+        for item in item_list:
+
+            last_edited_date = self.get_most_recent_edit_date(item)
+            # print(last_edited_date)
+            if last_edited_date is None:
+                continue
+            else:
+                if last_edited_date != "None":
+                    modified_date = last_edited_date
+                else:
+                    modified_date = "None"
                 # get the item's id
                 item_id = item.id
-                # check to see if the backup_location has a file with the same name as item.title + "_" + modified_date
-                # if it does, then skip downloading the item
-                # if not, then download the item
                 backup_name = str(item_id) + "_" + str(modified_date)
                 # replace any spaces with underscores
                 backup_name = backup_name.replace(" ", "_")
                 # replace any colons with underscores
                 backup_name = backup_name.replace(":", "_")
                 # print("Backup name: " + backup_name)
-                if os.path.exists(self.backup_location + "\\" + backup_name + ".zip"):
+
+                if os.path.exists(backupLocation + "\\" + backup_name + ".zip"):
                     print("A backup already exists for " + item.title)
 
                 else:
-                    result = item.export(
-                        backup_name, "File Geodatabase", parameters=None, wait=True)
-                    # print(result)
-                    result.download(self.backup_location)
-                    result.delete()
-                    print("Successfully downloaded " + item.title)
-                    self.write_to_csv(
-                        [item], os.path.join(self.backup_location, 'backup_info.csv'), backup_name, modified_date)
-
-            except Exception as e:
-                print("An error occurred downloading " +
-                      item.title + ": " + str(e))
+                    try:
+                        result = item.export(
+                            backup_name, "File Geodatabase", parameters=None, wait=True)
+                        # print(result)
+                        result.download(backupLocation)
+                        result.delete()
+                        print("Successfully downloaded " + item.title)
+                        write_to_csv(
+                            [item], self.csv_file_path, backup_name, modified_date)
+                    except Exception as e:
+                        print(f"Error downloading item {item.title}: {e}")
+                        continue
+        print("Finished downloading backups")
 
     def write_to_csv(self, item_list, csv_file_path, file_name, last_edited, skip_keys=None):
         if skip_keys is None:
@@ -110,18 +158,26 @@ class AGOLBackup:
 
 # Usage
 if __name__ == "__main__":
+    print("Starting AGOL Backup")
     gis = GIS('home')  # Using the local profile for the AGO Credentails will need to change if the computer running the backup script does not have ArcGIS Pro setup on teh workstation and the AGO credentials are not stored
 
     # Change this to the location you want to save the backups to
-    myBackupLocationPath = r"C:\Users\username\Documents\ArcGIS\AGO_Backup"
+    myBackupLocationPath = r"C:\Users\USER\BackupPath"
+    backupLocation = myBackupLocationPath
     folder_path = myBackupLocationPath
-    csv_file_path = os.path.join(folder_path, 'agoBackupDetails.csv')
+    csv_file_path = os.path.join(backupLocation, 'agoBackupDetails.csv')
 
     backup = AGOLBackup(gis, folder_path)
 
     query_string = "type:Feature Service AND NOT typekeywords:View Service"
     items = backup.get_feature_layers(query_string)
+    # return the count of items
+    print("Number of Feature Services: " + str(len(items)))
 
-    # backup.print_item_details(items)
-    backup.download_as_fgdb(items)
-    # backup.write_to_csv(items, csv_file_path)
+    # limit the items based on the existing backups
+    print("Filtering existing backups to only download items with update content...")
+    newItems = backup.filterExistingBackups(items, backupLocation)
+    print("Number of items to backup: " + str(len(newItems)))
+
+    print("Downloading items...")
+    backup.download_as_fgdb(newItems, backupLocation)
