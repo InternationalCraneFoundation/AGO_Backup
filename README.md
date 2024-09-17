@@ -27,7 +27,7 @@
     cd agoBackup
     ```
 
-2. ** Modify the script**:
+2. **Modify the script**:
    - Add your ArcGIS Online Credentials
    - Specify the location where the backup files will be stored.
    - Specify the name of the inventory CSV
