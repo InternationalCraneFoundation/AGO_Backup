@@ -83,7 +83,7 @@ class AGOLBackup:
                 filteredItems.append(item)
         return filteredItems
 
-    def download_as_fgdb(self, item_list, backupLocation):
+    def download_as_fgdb(self, item_list, backupLocation, csv_file_path):
         for item in item_list:
 
             last_edited_date = self.get_most_recent_edit_date(item)
@@ -162,7 +162,7 @@ if __name__ == "__main__":
     gis = GIS('home')  # Using the local profile for the AGO Credentails will need to change if the computer running the backup script does not have ArcGIS Pro setup on teh workstation and the AGO credentials are not stored
 
     # Change this to the location you want to save the backups to
-    myBackupLocationPath = r"MY_BACKUP_LOCATION"
+    myBackupLocationPath = r"C:\Users\Dorn\INTERNATIONAL CRANE FOUNDATION\GIS Team - Documents\AGOL_Backup"
     backupLocation = myBackupLocationPath
     folder_path = myBackupLocationPath
     csv_file_path = os.path.join(backupLocation, 'agoBackupDetails.csv')
@@ -180,4 +180,4 @@ if __name__ == "__main__":
     print("Number of items to backup: " + str(len(newItems)))
 
     print("Downloading items...")
-    backup.download_as_fgdb(newItems, backupLocation)
+    backup.download_as_fgdb(newItems, backupLocation, csv_file_path)
